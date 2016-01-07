@@ -45,18 +45,47 @@ bindkey '\e[5~' noop # Page up and Page down
 bindkey '\e[6~' noop
 
 function backward-word-tmux {
-  case "$TERM" in (tmux-*) zle backward-char ;; (*) zle backward-word ;; esac
+  case "$TERM" in
+    (tmux-*|xterm-256color-italic) zle backward-char ;;
+    (*) zle backward-word ;;
+   esac
 }
+zle -N backward-word-tmux
+
 function forward-word-tmux {
-  case "$TERM" in (tmux-*) zle forward-char ;; (*) zle forward-word ;; esac
+  case "$TERM" in
+    (tmux-*|xterm-256color-italic) zle forward-char ;;
+    (*) zle forward-word ;;
+  esac
 }
+zle -N forward-word-tmux
+
 function backward-char-tmux {
-  case "$TERM" in (tmux-*) zle backward-word ;; (*) zle backward-char ;; esac
+  case "$TERM" in
+    (tmux-*|xterm-256color-italic) zle backward-word ;;
+    (*) zle backward-char ;;
+   esac
 }
+zle -N backward-char-tmux
+
 function forward-char-tmux {
-  case "$TERM" in (tmux-*) zle forward-word ;; (*) zle forward-char ;; esac
+  case "$TERM" in
+    (tmux-*|xterm-256color-italic) zle forward-word ;;
+    (*) zle forward-char ;;
+   esac
 }
-zle -N backward-word-tmux; bindkey '\eOD' backward-word-tmux; bindkey '\eOd' backward-word-tmux
-zle -N backward-char-tmux; bindkey '\e[D' backward-char-tmux
-zle -N forward-word-tmux;  bindkey '\eOC' forward-word-tmux;  bindkey '\eOc' forward-word-tmux
-zle -N forward-char-tmux;  bindkey '\e[C' forward-char-tmux
+zle -N forward-char-tmux
+
+bindkey '\eOD' backward-word-tmux; bindkey '\eOd' backward-word-tmux
+bindkey '\e[D' backward-char-tmux
+bindkey '\eOC' forward-word-tmux;  bindkey '\eOc' forward-word-tmux
+bindkey '\e[C' forward-char-tmux
+
+
+# Mac bindings for ctrl-arrow
+function backward-word-mac { zle backward-word }
+zle -N backward-word-mac
+function forward-word-mac { zle forward-word }
+zle -N forward-word-mac
+bindkey '\e[1;5D' backward-word-mac; bindkey '\e\e[D' backward-word-mac
+bindkey '\e[1;5C' forward-word-mac; bindkey '\e\e[C' forward-word-mac
