@@ -310,6 +310,8 @@ if zstyle -t ':prezto:module:editor' dot-expansion; then
   bindkey -M isearch . self-insert 2> /dev/null
 fi
 
+# Set the word style if appropriate
+
 #
 # Layout
 #
@@ -326,3 +328,86 @@ fi
 
 unset key{,map,bindings}
 
+#
+# Select word mode.
+#
+
+zstyle -s ':prezto:module:editor' word-style 'word_style'
+if [[ -n "$word_style" ]]; then
+  autoload -U select-word-style
+  select-word-style "$word_style"
+  zle -A forward-word emacs-forward-word
+  zle -A backward-word emacs-backward-word
+
+  case "$word_style" in
+   (bash|Bash)
+    function forward-word-match {
+      emulate -L zsh
+      setopt extendedglob
+      autoload -Uz match-words-by-style
+      local curcontext=":zle:$WIDGET" word
+      local -a matched_words
+      integer count=${NUMERIC:-1}
+      if (( count < 0 )); then
+        (( NUMERIC = -count ))
+        zle ${WIDGET/forward/backward}
+        return
+      fi
+      while (( count-- )); do
+        match-words-by-style
+        if [[ -n $matched_words[4] ]]; then
+          word=$matched_words[4]$matched_words[5]
+        else
+          word=$matched_words[5]
+        fi
+        if [[ -n $word ]]; then
+          (( CURSOR += ${#word} ))
+        else
+          return 1
+        fi
+      done
+      return 0
+    }
+  esac
+fi
+
+#
+# Make copy/paste more like emacs.
+#
+
+if zstyle -t ':prezto:module:editor' emacs-copy; then
+  zle_highlight=(region:"bg=87,fg=black" special:standout
+      suffix:bold isearch:underline)
+
+  set_or_unset_mark () {
+    if [ "$CURSOR" -eq "$MARK" ]; then
+      REGION_ACTIVE=$((1 - REGION_ACTIVE))
+    else
+      zle set-mark-command
+    fi
+  }
+  unset_mark () {
+    REGION_ACTIVE=0
+  }
+  unset_mark_or_break () {
+    if [ "$REGION_ACTIVE" -eq 1 ]; then
+      REGION_ACTIVE=0
+    else
+      zle send-break
+    fi
+  }
+  copy_region () {
+    zle copy-region-as-kill
+    REGION_ACTIVE=0
+  }
+  zle -N set_or_unset_mark
+  zle -N unset_mark
+  zle -N unset_mark_or_break
+  zle -N copy_region
+
+  bindkey ^@ set_or_unset_mark
+  bindkey ^G unset_mark
+  bindkey '\ew' copy_region
+  bindkey '\eW' copy_region
+  bindkey '^W' kill-region
+fi

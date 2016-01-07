@@ -17,8 +17,9 @@ fi
 # Editors
 #
 
-export EDITOR='nano'
-export VISUAL='nano'
+export GIT_EDITOR='quickemacs'
+export EDITOR='quickemacs'
+export VISUAL='quickemacs'
 export PAGER='less'
 
 #

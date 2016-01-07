@@ -1,0 +1,244 @@
+#
+# My prompt.
+#
+# Authors:
+#   Stephen Hicks <sdh33@cornell.edu>
+#
+# Screenshots:
+#   http://i.imgur.com/ TODO
+#
+
+# Load dependencies.
+pmodload 'helper'
+
+
+function sdh_git_root {
+  # Works correctly in case of symlinks
+  local dir="$PWD"
+  while [ ${#dir} -gt 1 ]; do
+    if [ -d "$dir/.git" ]; then
+      echo "$dir"
+      return
+    fi
+    dir="${dir:h}"
+  done
+}
+
+function sdh_abbrev_dir {
+  local name="$1"
+  local dir="${(P)name}"
+
+  repository_name=''
+  local root="$(sdh_git_root 2> /dev/null)"
+  if [ -n "$root" ]; then
+    repository_name="${root:t}"
+    if [ ${#repository_name} -eq 1 ]; then
+      repository_name="${root:h:t}/$repository_name"
+    fi
+    dir=${dir/$root/#}
+  else
+    if [ -z "${dir##$HOME*}" ]; then
+      dir="~${dir#$HOME}"
+    fi
+  fi
+  call-prezto-hook abbrev_repo
+
+  # TODO(sdh): consider making repository_name=${root#$HOME/src/} instead
+  # We might want to abbreviate the root, too - will be trickier to avoid loops
+
+  eval "$name=${(q)dir}"
+}
+
+function prompt_sdh_chpwd {
+  repository_name=''
+  abbrev_pwd=$PWD
+  call-prezto-hook abbrev_dir abbrev_pwd
+}
+
+function _sdh_width {
+  echo "$@" | perl -e '
+    binmode(STDIN, ":utf8");
+    $_ = <>; chomp;
+    s/\%.(?:\{[^\}]+\})?//g;
+    print length($_);'
+}
+
+function _sdh_bubble {
+  if [ -n "$2" ]; then
+    echo "—(%F{$1}$2%F{black})—"
+  fi
+}
+
+function _sdh_repeat {
+  echo "${(e)${(l.$((2*$1))..$2.)}}"
+}
+
+function prompt_sdh_topline {
+  # Plan:   ———(status)——(repo)———————(time)———
+  
+  # TODO(sdh): set different colors for different hosts?
+  local timefmt="%D{%a, %b %d, %H:%M:%S}"
+  local hostfmt="%n@%m"
+  local time="$(_sdh_bubble white "${(%)timefmt}")"
+  local host="$(_sdh_bubble green "${(%)hostfmt}")"
+  local stat="$(_sdh_bubble red "$prompt_status")" #${repository_name:+($repository_name)--}"
+  local git="${git_info:+${(e)git_info[top]}}"
+  local pad=$(($COLUMNS - $(_sdh_width "$time$host$stat$git") - 4)) # TODO(sdh): handle negatives
+  _prompt_sdh_topline="%B%F{black}——$stat$host$git${(l.$pad..—.)}$time——%f%b"
+}
+
+function prompt_sdh_precmd {
+  local retval=$? # NOTE: could use $PIPESTATUS?
+  prompt_status=()
+  if [ $retval != 0 ]; then prompt_status=($retval); fi
+  call-prezto-hook get_prompt_status
+
+  setopt LOCAL_OPTIONS
+  unsetopt XTRACE KSH_ARRAYS
+
+  prompt_sdh_topline
+
+  # Get Git repository information.
+  if (( $+functions[git-info] )); then
+    : ${_last_git_info:=0}
+    : ${_last_git_info_time:=0}
+    if [ $((SECONDS - _last_git_info)) -gt $((10 * _last_git_info_time)) ]; then
+      local start=$SECONDS
+      git-info
+      _last_git_info=$SECONDS
+      _last_git_info_time=$((SECONDS-start))
+    fi
+  fi    
+
+  # TODO(sdh): move this to a tmux-title module?
+      case $TERM in
+        (tmux*)
+          # TODO(sdh): copy in some of the application logic from 99_hooks
+          if [ -n "$repository_name" ]; then
+            set_title_term "${repository_name}"
+          else
+            set_title_term "${PWD##*/}"
+          fi
+          ;;
+      esac
+
+  
+
+  # TODO(sdh): enforce a hard limit for directory length?
+
+  # TODO(sdh): google-info?
+
+  # Display time
+
+  # Fix up return value display to be more visible.
+
+  # Two rows?
+
+}
+
+function prompt_sdh_preexec {
+  local command=$2
+  if [ -z "${command##emacs*}" ]; then
+    set_title_term "+"
+  else
+    set_title_term "..."
+  fi
+}
+
+function prompt_sdh_git_branch {
+  if [ -n "$1" ]; then echo "$1($2)"; else echo "$2"; fi
+}
+
+function prompt_sdh_setup {
+  setopt LOCAL_OPTIONS
+  unsetopt XTRACE KSH_ARRAYS
+  prompt_opts=(cr percent subst)
+
+  # Load required functions.
+  autoload -Uz add-zsh-hook
+
+  # Set editor-info parameters.
+  zstyle ':prezto:module:editor:info:completing' format '%B%F{red}...%f%b'
+  zstyle ':prezto:module:editor:info:keymap:primary' format ' %B%F{red}❯%F{yellow}❯%F{green}❯%f%b'
+  zstyle ':prezto:module:editor:info:keymap:primary:overwrite' format ' %F{red}♺%f'
+  zstyle ':prezto:module:editor:info:keymap:alternate' format ' %B%F{green}❮%F{yellow}❮%F{red}❮%f%b'
+
+  # Set git-info parameters.
+  zstyle ':prezto:module:git:info' verbose 'yes'
+  #zstyle ':prezto:module:git:info:action' format ':%%B%F{magenta}%s%f%%b'
+  zstyle ':prezto:module:git:info:action' format '%s'
+  zstyle ':prezto:module:git:info:added' format ' %%B%F{green}✚%f%%b'
+  zstyle ':prezto:module:git:info:ahead' format ' %%B%F{yellow}⬆%f%%b'
+  zstyle ':prezto:module:git:info:behind' format ' %%B%F{yellow}⬇%f%%b'
+  zstyle ':prezto:module:git:info:branch' format '%b'
+  zstyle ':prezto:module:git:info:commit' format '%.7c'
+  zstyle ':prezto:module:git:info:deleted' format ' %%B%F{red}✖%f%%b'
+  zstyle ':prezto:module:git:info:modified' format ' %%B%F{blue}✱%f%%b'
+  zstyle ':prezto:module:git:info:position' format ':%F{red}%p%f'
+  zstyle ':prezto:module:git:info:renamed' format ' %%B%F{magenta}➜%f%%b'
+  #zstyle ':prezto:module:git:info:stashed' format ' %%B%F{cyan}✭%f%%b'
+  zstyle ':prezto:module:git:info:stashed' format '$(_sdh_repeat %S ✭)'
+  #zstyle ':prezto:module:git:info:stashed' format '${(l.%s..✭.)}'
+  zstyle ':prezto:module:git:info:unmerged' format ' %%B%F{yellow}═%f%%b'
+  zstyle ':prezto:module:git:info:untracked' format ' %%B%F{white}◼%f%%b'
+  zstyle ':prezto:module:git:info:keys' format \
+    'top' '$(_sdh_bubble magenta "%s")$(_sdh_bubble cyan "%S")' \
+    'prompt' ':%F{yellow}$(prompt_sdh_git_branch "%b" "%c")%s' \
+    'rprompt' '%A%B%a%d%m%r%U%u'
+    #'rprompt' '%A%B%S%a%d%m%r%U%u'
+
+  # Define prompts.
+  PROMPT='$_prompt_sdh_topline%B%F{yellow}${repository_name}%f${git_info:+${(e)git_info[prompt]}}%(!. %B%F{red}#%f%b.)${repository_name:+ }%B%F{blue}${abbrev_pwd}%f${editor_info[keymap]} '
+  RPROMPT='${editor_info[overwrite]}%(?:: %B%F{red}⏎%f%b)${VIM:+" %B%F{green}V%f%b"}${git_info[rprompt]}'
+  SPROMPT='zsh: correct %F{red}%R%f to %F{green}%r%f [nyae]? '
+
+  # Add hook for calling git-info before each command.
+  add-zsh-hook precmd prompt_sdh_precmd
+  add-zsh-hook chpwd prompt_sdh_chpwd
+  add-zsh-hook preexec prompt_sdh_preexec
+  add-prezto-hook abbrev_dir sdh_abbrev_dir
+  call-prezto-hook chpwd
+
+
+
+  # TODO(sdh): add a history hook (somewhere else!)
+
+
+      # TODO(sdh): clean this up!!!
+FIXED_TITLE=
+
+function set_title {
+  if [ -z "$FIXED_TITLE" ]; then
+    set_title_term "$1"
+  else
+    set_title_term "$FIXED_TITLE"
+  fi
+}
+
+case "$TERM" in
+  xterm*)
+    function set_title_term {
+      echo -ne "\033]0;$1\007";
+    }
+    ;;
+  rxvt*)
+    function set_title_term {
+      echo -ne "\033]0;$1\007\033]777;tabbedex;set_tab_name;$1\007"
+    }
+    ;;
+  screen*|tmux*)
+    function set_title_term {
+      echo -ne "\033]0;$1\007\033]777;tabbedex;set_tab_name;$1\007"
+      #echo -ne "\032,$1\015"
+      echo -ne "\033k$1\033\\"
+    }
+    ;;
+  *) function set_title_term { :; }
+esac
+
+
+
+}
+
+prompt_sdh_setup "$@"
+
