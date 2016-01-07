@@ -21,6 +21,11 @@ zstyle ':prezto:*:*' color 'yes'
 # Set the Zsh functions to load (man zshcontrib).
 # zstyle ':prezto:load' zfunction 'zargs' 'zmv'
 
+zprezto_google=''
+if [ -d ~/.zprezto/modules/google ]; then
+  zprezto_google=google
+fi
+
 # Set the Prezto modules to load (browse modules).
 # The order matters.
 zstyle ':prezto:load' pmodule \
@@ -33,7 +38,7 @@ zstyle ':prezto:load' pmodule \
   'spectrum' \
   'utility' \
   'git' \
-  'google' \
+  $zprezto_google \
   'timing' \
   'completion' \
   'prompt'
