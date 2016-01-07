@@ -12,3 +12,37 @@ fi
 
 # Customize to your needs...
 
+setopt NO_BANG_HIST           # Don't treat '!' special
+setopt PUSHD_MINUS            # Invert the sign of dir stack
+setopt NO_NOMATCH             # Don't cause errors when globbing fails
+setopt INTERACTIVE_COMMENTS   # Comments are allowed interactively
+setopt AUTO_PUSHD             # Automatically push dirs onto stack
+unsetopt BRACE_CCL            # Don't expand a{bc}d to (abd acd)
+unsetopt EXTENDED_GLOB        # Don't interpret commit^ as a glob
+
+### TODO(sdh): what does this do?
+# zstyle ':completion:*' completer _complete _ignored _files
+
+
+# Fix a few keybindings (from URXVT, tmux, etc):
+function noop { :; }
+zle -N noop
+bindkey '\e[5~' noop # Page up and Page down
+bindkey '\e[6~' noop
+
+function backward-word-tmux {
+  case "$TERM" in (tmux-*) zle backward-char ;; (*) zle backward-word ;; esac
+}
+function forward-word-tmux {
+  case "$TERM" in (tmux-*) zle forward-char ;; (*) zle forward-word ;; esac
+}
+function backward-char-tmux {
+  case "$TERM" in (tmux-*) zle backward-word ;; (*) zle backward-char ;; esac
+}
+function forward-char-tmux {
+  case "$TERM" in (tmux-*) zle forward-word ;; (*) zle forward-char ;; esac
+}
+zle -N backward-word-tmux; bindkey '\eOD' backward-word-tmux; bindkey '\eOd' backward-word-tmux
+zle -N backward-char-tmux; bindkey '\e[D' backward-char-tmux
+zle -N forward-word-tmux;  bindkey '\eOC' forward-word-tmux;  bindkey '\eOc' forward-word-tmux
+zle -N forward-char-tmux;  bindkey '\e[C' forward-char-tmux

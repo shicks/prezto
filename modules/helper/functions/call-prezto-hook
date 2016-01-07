@@ -1,0 +1,22 @@
+#
+# Calls a prezto hook function by name.
+#
+# Authors:
+#   Stephen Hicks <sdh33@cornell.edu>
+#
+
+local name="$1"
+local hook="${name}_functions"
+
+shift
+
+if (( $+functions[$name] )); then
+  $name "$@"
+fi
+
+local hookfunction
+for hookfunction in "${(@P)hook}"; do
+  if (( $+functions[$hookfunction] )); then # TODO(sdh): doesn't seem to guard
+    $hookfunction "$@"
+  fi
+done

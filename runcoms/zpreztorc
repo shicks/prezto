@@ -28,10 +28,13 @@ zstyle ':prezto:load' pmodule \
   'terminal' \
   'editor' \
   'history' \
+  'permanent-history' \
   'directory' \
   'spectrum' \
   'utility' \
   'git' \
+  'google' \
+  'timing' \
   'completion' \
   'prompt'
 
@@ -42,15 +45,28 @@ zstyle ':prezto:load' pmodule \
 # Set the key mapping style to 'emacs' or 'vi'.
 zstyle ':prezto:module:editor' key-bindings 'emacs'
 
+# Set the word style to Bash (bash-like, but with subword mode).
+zstyle ':prezto:module:editor' word-style 'Bash'
+
+# Fix up the copy-paste behavior.
+zstyle ':prezto:module:editor' emacs-copy 'yes'
+
 # Auto convert .... to ../..
 # zstyle ':prezto:module:editor' dot-expansion 'yes'
+
+#
+# Timing
+#
+
+# Ring the bell after slow commands.
+zstyle ':prezto:module:timing:tmux' bell 'yes'
 
 #
 # Git
 #
 
 # Ignore submodules when they are 'dirty', 'untracked', 'all', or 'none'.
-# zstyle ':prezto:module:git:status:ignore' submodules 'all'
+zstyle ':prezto:module:git:status:ignore' submodules 'all'
 
 #
 # GNU Utility
@@ -86,7 +102,7 @@ zstyle ':prezto:module:editor' key-bindings 'emacs'
 # Set the prompt theme to load.
 # Setting it to 'random' loads a random theme.
 # Auto set to 'off' on dumb terminals.
-zstyle ':prezto:module:prompt' theme 'sorin'
+zstyle ':prezto:module:prompt' theme 'sdh'
 
 #
 # Ruby
@@ -153,3 +169,11 @@ zstyle ':prezto:module:prompt' theme 'sorin'
 
 # Auto start a session when Zsh is launched in a SSH connection.
 # zstyle ':prezto:module:tmux:auto-start' remote 'yes'
+
+
+export EDITOR=quickemacs
+
+alias got=git
+alias gut=git
+
+PREZTO_LOADED=$(date)

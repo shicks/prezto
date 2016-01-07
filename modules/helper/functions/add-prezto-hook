@@ -1,0 +1,66 @@
+#
+# Adds to HOOK the given FUNCTION.  Usage is identical to add-zsh-hook.
+#
+# Authors:
+#   Stephen Hicks <sdh33@cornell.edu>, copied from zsh-contrib
+#
+
+emulate -L zsh
+
+local opt
+local -a autoopts
+integer del
+
+while getopts "dDUzk" opt; do
+  case $opt in
+    (d)
+    del=1
+    ;;
+
+    (D)
+    del=2
+    ;;
+
+    ([Uzk])
+    autoopts+=(-$opt)
+    ;;
+
+    (*)
+    return 1
+    ;;
+  esac
+done
+shift $(( OPTIND - 1 ))
+
+if (( $# != 2 )); then
+  print "Usage: $0 hook function"
+  return 1
+fi
+
+local hook="${1}_functions"
+local fn="$2"
+
+if (( del )); then
+  # delete, if hook is set
+  if (( ${(P)+hook} )); then
+    if (( del == 2 )); then
+      set -A $hook ${(P)hook:#${~fn}}
+    else
+      set -A $hook ${(P)hook:#$fn}
+    fi
+    # unset if no remaining entries --- this can give better
+    # performance in some cases
+    if (( ! ${(P)#hook} )); then
+      unset $hook
+    fi
+  fi
+else
+  if (( ${(P)+hook} )); then
+    if (( ${${(P)hook}[(I)$fn]} == 0 )); then
+      set -A $hook ${(P)hook} $fn
+    fi
+  else
+    set -A $hook $fn
+  fi
+  autoload $autoopts -- $fn
+fi
