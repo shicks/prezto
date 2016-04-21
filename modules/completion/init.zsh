@@ -1,4 +1,3 @@
-#
 # Sets completion options.
 #
 # Authors:
@@ -43,7 +42,9 @@ if zstyle -t ':prezto:module:completion:*' case-sensitive; then
   zstyle ':completion:*' matcher-list 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
   setopt CASE_GLOB
 else
-  zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+  # NOTE(sdh): case-insensitive completion shouldn't complete bui<TAB>
+  # with buiLD, so we added '' to the front of the matcher-list to prevent it.
+  zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
   unsetopt CASE_GLOB
 fi
 
