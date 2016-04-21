@@ -12,6 +12,7 @@ fi
 
 # Customize to your needs...
 
+
 # Mac-specific customizations
 if [ -d /Users/sdh ]; then
   # The next line updates PATH for the Google Cloud SDK.
