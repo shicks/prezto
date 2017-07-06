@@ -17,6 +17,13 @@ function show_exec_time {
 function start_timer {
   _last_start_seconds=$SECONDS
   show_exec_time # Can be toggled by setting minimum to infinity
+
+  if [ -n "$TMUX" ]; then
+    local monitor
+    zstyle -s ':prezto:module:timing:silence' monitor 'monitor'
+    tmux set-window-option -t "$TMUX_PANE" \
+         monitor-silence {$monitor:-60} &> /dev/null
+  fi
 }
 function end_timer {
   local minimum format
@@ -46,6 +53,10 @@ function end_timer {
       fi
     fi
     _last_start_seconds=
+  fi
+
+  if [ -n "$TMUX" ]; then
+    tmux set-window-option -t "$TMUX_PANE" monitor-silence 0 &> /dev/null
   fi
 }
 
