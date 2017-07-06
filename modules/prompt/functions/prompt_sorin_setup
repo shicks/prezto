@@ -32,18 +32,7 @@
 # Load dependencies.
 pmodload 'helper'
 
-function prompt_sorin_pwd {
-  local pwd="${PWD/#$HOME/~}"
-
-  if [[ "$pwd" == (#m)[/~] ]]; then
-    _prompt_sorin_pwd="$MATCH"
-    unset MATCH
-  else
-    _prompt_sorin_pwd="${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%}"
-  fi
-}
-
-function prompt_sorin_git_info {
+prompt_sorin_git_info() {
   if (( _prompt_sorin_precmd_async_pid > 0 )); then
     # Append Git status.
     if [[ -s "$_prompt_sorin_precmd_async_data" ]]; then
@@ -65,7 +54,23 @@ function prompt_sorin_precmd_async {
   # Get Git repository information.
   if (( $+functions[git-info] )); then
     git-info
-    typeset -p git_info >! "$_prompt_sorin_precmd_async_data"
+    ### TODO XXX
+    # This section exists to patch over vulnerabilities when sourcing the
+    # file in $_prompt_sorin_precmd_async_data. Without it if a branch is named
+    # $foo it will expand if we have a $foo variable, and a branch named
+    # $(IFS=_;cmd=rm_-rf_~;$cmd) could delete the users home directory.
+    # This is a stopgap to prevent code execution and fix the vulnerability,
+    # but it eventually needs to be removed in favor of zsh_async and not using
+    # a file to store the prompt data in.
+    ###
+    local tmp_prompt_var=$(typeset -p git_info)
+    # Replace all $ with $\ to escape
+    tmp_prompt_var=${tmp_prompt_var//\$/\\$}
+    # Unescape the first \$ as it's our $( )
+    tmp_prompt_var=${tmp_prompt_var:s/\\$/\$}
+    # Escape all backticks ` to \`
+    tmp_prompt_var=${tmp_prompt_var//\`/\\\`}
+    printf "%s\n" "$tmp_prompt_var" >! "$_prompt_sorin_precmd_async_data"
   fi
 
   # Signal completion to parent process.
@@ -77,7 +82,7 @@ function prompt_sorin_precmd {
   unsetopt XTRACE KSH_ARRAYS
 
   # Format PWD.
-  prompt_sorin_pwd
+  _prompt_sorin_pwd=$(promptpwd)
 
   # Define prompts.
   RPROMPT='${editor_info[overwrite]}%(?:: %F{1}⏎%f)${VIM:+" %B%F{6}V%f%b"}'
@@ -98,7 +103,7 @@ function prompt_sorin_setup {
   unsetopt XTRACE KSH_ARRAYS
   prompt_opts=(cr percent subst)
   _prompt_sorin_precmd_async_pid=0
-  _prompt_sorin_precmd_async_data="${TMPPREFIX}-prompt_sorin_data"
+  _prompt_sorin_precmd_async_data=$(mktemp "${TMPDIR:-/tmp}/sorin-prompt-async-XXXXXXXXXX")
 
   # Load required functions.
   autoload -Uz add-zsh-hook

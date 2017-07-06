@@ -41,14 +41,33 @@ alias ftp='noglob ftp'
 alias history='noglob history'
 alias locate='noglob locate'
 alias rake='noglob rake'
-alias rsync='noglob rsync'
-alias scp='noglob scp'
+alias rsync='noglob rsync_scp_wrap rsync'
+alias scp='noglob rsync_scp_wrap scp'
+# This function wraps rsync and scp so that remote paths are not globbed
+# but local paths are globbed. This is because the programs have their own
+# globbing for remote paths. The wrap function globs args starting in / and ./
+# and doesn't glob paths with : in it as these are interpreted as remote paths
+# by these programs unless the path starts with / or ./
+function rsync_scp_wrap {
+  local args=( )
+  local cmd="$1"
+  shift
+  local i
+  for i in "$@"; do case $i in
+    ( ./* ) args+=( ${~i} ) ;; # glob
+    (  /* ) args+=( ${~i} ) ;; # glob
+    ( *:* ) args+=( ${i}  ) ;; # noglob
+    (  *  ) args+=( ${~i} ) ;; # glob
+  esac; done
+  command $cmd "${(@)args}"
+}
 alias sftp='noglob sftp'
 
 # Define general aliases.
 alias _='sudo'
 alias b='${(z)BROWSER}'
 alias cp="${aliases[cp]:-cp} -i"
+alias diffu="diff --unified"
 alias e='${(z)VISUAL:-${(z)EDITOR}}'
 alias ln="${aliases[ln]:-ln} -i"
 alias mkdir="${aliases[mkdir]:-mkdir} -p"
@@ -57,6 +76,7 @@ alias p='${(z)PAGER}'
 alias po='popd'
 alias pu='pushd'
 alias rm="${aliases[rm]:-rm} -i"
+alias sa='alias | grep -i'
 alias type='type -a'
 
 # ls
@@ -140,25 +160,30 @@ elif (( $+commands[wget] )); then
 fi
 
 # Resource Usage
-alias df='df -kh'
+if (( $+commands[pydf] )); then
+  alias df=pydf
+else
+  alias df='df -kh'
+fi
+
 alias du='du -kh'
 
-if (( $+commands[htop] )); then
-  alias top=htop
+if [[ "$OSTYPE" == (darwin*|*bsd*) ]]; then
+  alias topc='top -o cpu'
+  alias topm='top -o vsize'
 else
-  if [[ "$OSTYPE" == (darwin*|*bsd*) ]]; then
-    alias topc='top -o cpu'
-    alias topm='top -o vsize'
-  else
-    alias topc='top -o %CPU'
-    alias topm='top -o %MEM'
-  fi
+  alias topc='top -o %CPU'
+  alias topm='top -o %MEM'
 fi
 
 # Miscellaneous
 
 # Serves a directory via HTTP.
-alias http-serve='python -m SimpleHTTPServer'
+if (( $+commands[python3] )); then
+  alias http-serve='python3 -m http.server'
+else
+  alias http-serve='python -m SimpleHTTPServer'
+fi
 
 #
 # Functions
